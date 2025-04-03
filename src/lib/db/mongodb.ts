@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-// Use a placeholder during build time or when MONGODB_URI is not defined
+// ใช้ placeholder เมื่อ MONGODB_URI ไม่ถูกกำหนด
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://placeholder:27017/vocabulary';
 
 /**
@@ -15,7 +15,8 @@ declare global {
   };
 }
 
-let cached = global.mongooseGlobal || { conn: null, promise: null };
+// เปลี่ยนจาก let เป็น const เนื่องจากค่าของ cached จะไม่ถูกเปลี่ยนแปลง
+const cached = global.mongooseGlobal || { conn: null, promise: null };
 global.mongooseGlobal = cached;
 
 export async function connectToDatabase() {
