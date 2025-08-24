@@ -1,0 +1,95 @@
+
+> my-v0-project@0.1.0 build
+> next build
+
+   ▲ Next.js 15.2.4
+   - Environments: .env.local
+   - Experiments (use with caution):
+     ✓ webpackBuildWorker
+     ✓ parallelServerCompiles
+     ✓ parallelServerBuildTraces
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 6.0s
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+NextAuth route handler initializing
+NextAuth route handler initialized
+   Generating static pages (0/35) ...
+   Generating static pages (8/35) 
+MongoDB connected successfully in production mode
+   Generating static pages (17/35) 
+   Generating static pages (26/35) 
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+ ✓ Generating static pages (35/35)
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+MongoDB connected successfully in production mode
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ƒ /                                    3.61 kB         125 kB
+├ ƒ /api/auth/[...nextauth]                219 B         101 kB
+├ ƒ /api/check-admin                       219 B         101 kB
+├ ƒ /api/debug/duplicates                  219 B         101 kB
+├ ƒ /api/debug/fix-duplicates              219 B         101 kB
+├ ƒ /api/debug/progress                    219 B         101 kB
+├ ƒ /api/make-admin                        219 B         101 kB
+├ ƒ /api/progress                          219 B         101 kB
+├ ƒ /api/progress/reset                    219 B         101 kB
+├ ƒ /api/progress/reset-level              219 B         101 kB
+├ ƒ /api/progress/select-level             219 B         101 kB
+├ ƒ /api/review/progress                   219 B         101 kB
+├ ƒ /api/stats                             219 B         101 kB
+├ ƒ /api/test-db                           219 B         101 kB
+├ ƒ /api/users                             219 B         101 kB
+├ ƒ /api/users/[id]                        219 B         101 kB
+├ ƒ /api/words                             219 B         101 kB
+├ ƒ /api/words/add-sample                  219 B         101 kB
+├ ƒ /api/words/bulk                        219 B         101 kB
+├ ƒ /api/words/clear-all                   219 B         101 kB
+├ ƒ /api/words/game                        219 B         101 kB
+├ ƒ /api/words/[id]                        219 B         101 kB
+├ ƒ /api/words/import                      219 B         101 kB
+├ ƒ /api/words/next                        219 B         101 kB
+├ ƒ /api/words/stage                       219 B         101 kB
+├ ƒ /api/words/wrong                       219 B         101 kB
+├ ƒ /api/words/wrong/clear                 219 B         101 kB
+├ ƒ /api/words/wrong/mastered              219 B         101 kB
+├ ƒ /api/words/wrong/reset                 219 B         101 kB
+├ ƒ /dashboard                           2.56 kB         144 kB
+├ ○ /debug/progress                      3.99 kB         112 kB
+├ ƒ /game                                7.17 kB         135 kB
+├ ƒ /level-select                         6.7 kB         118 kB
+├ ƒ /manage-words                        6.93 kB         151 kB
+├ ○ /_not-found                            981 B         102 kB
+├ ƒ /progress                              219 B         101 kB
+├ ƒ /review                              3.57 kB         132 kB
+├ ƒ /users                                6.8 kB         128 kB
+└ ƒ /wrong-words                         6.83 kB         118 kB
++ First Load JS shared by all             101 kB
+  ├ chunks/1684-c88cae407223826b.js      45.3 kB
+  ├ chunks/4bd1b696-c485c228dc163e46.js  53.2 kB
+  └ other shared chunks (total)          1.99 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

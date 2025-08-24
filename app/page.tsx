@@ -9,9 +9,23 @@ import Link from "next/link"
 
 export default async function Home() {
   const session = await getServerSession(authOptions)
-
   if (session) {
-    redirect("/game")
+    if (session.user && (session.user.confirmed === false || session.user.role === 'pending')) {
+      redirect('/pending')
+    }
+    // ก่อนรีไดเร็กต์ ตรวจสอบสถานะ confirmed จาก DB
+    try {
+      const client = await (await import('@/lib/mongodb')).default
+      const db = client.db()
+      const userDoc = await db.collection('users').findOne({ $or: [{ _id: session.user.id }, { email: session.user.email }] })
+      if (userDoc && userDoc.confirmed === false) {
+        redirect('/pending')
+      }
+    } catch (err) {
+      console.error('Home page - error checking user status:', err)
+    }
+
+    redirect('/game')
   }
 
   return (

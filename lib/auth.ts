@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import clientPromise from "@/lib/mongodb"
+import { ObjectId } from 'mongodb'
 
 export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
@@ -50,6 +51,14 @@ export const authOptions: NextAuthOptions = {
 
           console.log("Server Checking admin status for user:", userId)
 
+          // prepare id query: try to use ObjectId when possible, otherwise fall back to raw id
+          let idQuery: any = userId
+          try {
+            if (userId) idQuery = new ObjectId(String(userId))
+          } catch (e) {
+            idQuery = userId
+          }
+
           // ตรวจสอบว่าผู้ใช้เป็น admin หรือไม่
           // ถ้าไม่มีผู้ใช้ที่เป็น admin ให้กำหนดผู้ใช้แรกเป็น admin
           const adminCount = await db.collection("users").countDocuments({ role: "admin" })
@@ -59,13 +68,13 @@ export const authOptions: NextAuthOptions = {
             // ถ้าไม่มี admin ให้กำหนดผู้ใช้นี้เป็น admin
             console.log("Server No admin found, setting current user as admin")
 
-            // ตรวจสอบว่า userId เป็น ObjectId หรือไม่
-            const userIdForQuery = userId
-
-            // ทำการอัปเดตผู้ใช้เป็น admin
+            // ทำการอัปเดตผู้ใช้เป็น admin (พยายาม match ทั้ง _id และ email)
             const updateResult = await db
               .collection("users")
-              .updateOne({ _id: userIdForQuery }, { $set: { role: "admin" } })
+              .updateOne(
+                { $or: [{ _id: idQuery }, { email: session.user.email }] },
+                { $set: { role: "admin", confirmed: true } }
+              )
 
             console.log(
               "Server Update result:",
@@ -81,13 +90,13 @@ export const authOptions: NextAuthOptions = {
             } else {
               console.log("Server Failed to set user as admin. No documents were modified.")
 
-              // ลองใช้วิธีอื่นในการค้นหาผู้ใช้
+              // ลองใช้วิธีอื่นในการค้นหาผู้ใช้ (อีกครั้งโดยระบุ email)
               const user = await db.collection("users").findOne({ email: session.user.email })
               if (user) {
                 console.log("Server Found user by email:", user._id)
                 const updateByEmailResult = await db
                   .collection("users")
-                  .updateOne({ _id: user._id }, { $set: { role: "admin" } })
+                  .updateOne({ _id: user._id }, { $set: { role: "admin", confirmed: true } })
                 console.log(
                   "Server Update by email result:",
                   updateByEmailResult.matchedCount,
@@ -103,22 +112,32 @@ export const authOptions: NextAuthOptions = {
               }
             }
           } else {
-            // ตรวจสอบว่าผู้ใช้นี้เป็น admin หรือไม่
-            const userDoc = await db.collection("users").findOne({ _id: userId })
+            // ตรวจสอบและเตรียมสถานะ confirmed
+            // Try to find the user by _id (ObjectId-aware) or email
+            const userDoc = await db.collection("users").findOne({ $or: [{ _id: idQuery }, { email: session.user.email }] })
             console.log("Server User document:", userDoc)
 
+            // If the user document has no confirmed flag, set it to false by default
+            if (userDoc && typeof userDoc.confirmed === 'undefined') {
+              await db.collection('users').updateOne({ $or: [{ _id: idQuery }, { email: session.user.email }] }, { $set: { confirmed: false } })
+              userDoc.confirmed = false
+            }
+
+            // If the user is admin in DB, treat as admin and ensure confirmed
             if (userDoc?.role === "admin") {
               session.user.role = "admin"
+              session.user.confirmed = true
               console.log("Server User is admin:", userId)
+            } else if (userDoc?.confirmed) {
+              // regular confirmed user
+              session.user.role = userDoc.role || 'user'
+              session.user.confirmed = true
+              console.log("Server User is confirmed user:", userId)
             } else {
-              console.log("Server User is not admin:", userId)
-
-              // ลองค้นหาด้วย email
-              const userByEmail = await db.collection("users").findOne({ email: session.user.email })
-              if (userByEmail?.role === "admin") {
-                session.user.role = "admin"
-                console.log("Server User is admin (found by email):", session.user.email)
-              }
+              // not confirmed yet — mark as pending
+              session.user.role = 'pending'
+              session.user.confirmed = false
+              console.log("Server User is pending confirmation:", userId)
             }
           }
         } catch (error) {

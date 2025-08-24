@@ -29,8 +29,11 @@ export async function GET(request: Request) {
 
     console.log("Server Found user:", user._id)
 
-    // ทำให้ผู้ใช้ปัจจุบันเป็น admin
-    const result = await db.collection("users").updateOne({ _id: user._id }, { $set: { role: "admin" } })
+    // ทำให้ผู้ใช้ปัจจุบันเป็น admin และยืนยันบัญชี (confirmed)
+    const result = await db.collection("users").updateOne(
+      { _id: user._id },
+      { $set: { role: "admin", confirmed: true } }
+    )
 
     console.log(
       "Server Update result:",

@@ -1,5 +1,6 @@
 "use client"
 import { useState } from "react"
+import { Button } from "@/components/ui/button"
 
 export default function ProcessWordsButton() {
   const [running, setRunning] = useState(false)
@@ -20,18 +21,56 @@ export default function ProcessWordsButton() {
     }
   }
 
+  function downloadJson(data: any, filename = "preview.json") {
+    const url = `data:application/json,${encodeURIComponent(JSON.stringify(data))}`
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+  }
+
+  function downloadCsvFromSamples(samples: any[], filename = 'preview.csv') {
+    if (!samples || samples.length === 0) return
+    const headers = ['_id','english','thai','level','sequence','stage']
+    const rows = samples.map(s => headers.map(h => {
+      const v = s[h] ?? s[h === '_id' ? 'id' : h] ?? ''
+      const str = String(v).replace(/"/g, '""')
+      return (str.includes(',') || str.includes('\n')) ? `"${str}"` : str
+    }).join(','))
+    const csv = [headers.join(','), ...rows].join('\n')
+  // include BOM so Excel detects UTF-8 correctly
+  const bom = '\uFEFF'
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
-        <button className="btn" onClick={() => runProcess(true)} disabled={running}>
+        <Button variant="outline" onClick={() => runProcess(true)} disabled={running}>
           {running ? "Running..." : "Preview (dry run)"}
-        </button>
-        <button className="btn btn-primary" onClick={() => runProcess(false)} disabled={running}>
+        </Button>
+        <Button variant="secondary" onClick={() => runProcess(false)} disabled={running}>
           {running ? "Running..." : "Process words"}
-        </button>
+        </Button>
       </div>
       {result && (
-        <pre className="rounded border p-2 overflow-auto max-h-72">{JSON.stringify(result, null, 2)}</pre>
+        <div className="mt-2 p-2 border rounded bg-gray-50">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="font-medium">Preview result</div>
+            <button className="btn btn-sm" onClick={() => downloadJson(result, 'process-preview.json')}>Download JSON</button>
+            <button className="btn btn-sm" onClick={() => {
+              const samples = result.sample || result.previewSample || result.summary?.sample || []
+              downloadCsvFromSamples(samples, 'process-preview.csv')
+            }}>Download CSV</button>
+          </div>
+          <pre className="max-h-64 overflow-auto text-xs">{JSON.stringify(result, null, 2)}</pre>
+        </div>
       )}
     </div>
   )

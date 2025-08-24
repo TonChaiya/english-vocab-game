@@ -35,22 +35,40 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // ข้อมูล ต้องการ รับ
+
+    // ข้อมูลที่ต้องการรับจาก request
     const data = await request.json()
     console.log("Server API: Update data:", data)
 
-    // ตรวจสอบว่า ข้อมูล ต้องการ รับ ไม่
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: "No data to update" }, { status: 400 })
     }
 
-    // สร้าง object ต้องการ รับ
-    const updateData: Record<string, any> = {}
+    // ดึงข้อมูลผู้ใช้เป้าหมายก่อน (จำเป็นเพื่อตรวจสอบ role/last-admin และค่าเริ่มต้น)
+    const targetUser = await db.collection('users').findOne({ _id: new ObjectId(id) })
+    if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
-    // ตรวจสอบและ นำข้อมูล ต้องการ รับ
+    // สร้าง object สำหรับอัพเดต
+    const updateData: Record<string, any> = {}
     if (data.name !== undefined) updateData.name = data.name
     if (data.email !== undefined) updateData.email = data.email
-    if (data.role !== undefined) updateData.role = data.role
+
+    // หากขอเปลี่ยน role ให้ตรวจสอบการลบสิทธิ์แอดมินคนสุดท้าย
+    if (data.role !== undefined) {
+      const adminCount = await db.collection('users').countDocuments({ role: 'admin' })
+      if (targetUser.role === 'admin' && data.role !== 'admin' && adminCount <= 1) {
+        return NextResponse.json({ error: 'Cannot remove admin role from the last admin' }, { status: 400 })
+      }
+      updateData.role = data.role
+    }
+
+    // หากขอยืนยันบัญชี ให้ตั้ง confirmed และถ้าผู้ใช้ไม่มี role ให้ตั้งเป็น 'user'
+    if (data.confirmed !== undefined) {
+      updateData.confirmed = !!data.confirmed
+      if (data.confirmed === true && (!targetUser.role || targetUser.role === null)) {
+        updateData.role = updateData.role || 'user'
+      }
+    }
 
     // ข้อมูล
     const result = await db.collection("users").updateOne(
@@ -108,12 +126,17 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     if (currentUser._id.toString() === id) {
       return NextResponse.json({ error: "Cannot delete yourself" }, { status: 400 })
     }
-
     // ดึงข้อมูลผู้ใช้ที่จะลบเพื่อใช้ในการลบข้อมูลที่เกี่ยวข้อง
     const userToDelete = await db.collection("users").findOne({ _id: new ObjectId(id) })
 
     if (!userToDelete) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    // Prevent deleting the last admin
+    const adminCount = await db.collection('users').countDocuments({ role: 'admin' })
+    if (userToDelete.role === 'admin' && adminCount <= 1) {
+      return NextResponse.json({ error: 'Cannot delete the last admin' }, { status: 400 })
     }
 
     // ลบข้อมูลความคืบหน้าของผู้ใช้ (progress collection)

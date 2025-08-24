@@ -16,8 +16,13 @@ export async function POST(req: Request) {
     const url = new URL(req.url)
     const dryRun = url.searchParams.get("dryRun") === "true"
 
-    const client = await clientPromise
-    const db = client.db()
+  const client = await clientPromise
+  const db = client.db()
+
+  // Create a job record for audit
+  const jobDoc: any = { type: "process_words", owner: session.user.id, dryRun, status: "running", startedAt: new Date() }
+  const jobInsert = await db.collection("jobs").insertOne(jobDoc as any)
+  const jobId = jobInsert.insertedId
 
     // Acquire a simple lock to prevent concurrent runs
     // Acquire lock safely: try insert, if duplicate key then try conditional update
@@ -44,7 +49,7 @@ export async function POST(req: Request) {
     const levels: string[] = await db.collection("words").distinct("level")
     const summary: Record<string, any> = { levels: {}, totalAssigned: 0, totalUpdated: 0 }
 
-    for (const level of levels) {
+  for (const level of levels) {
       // iterate in deterministic order
       const cursor = db
         .collection("words")
@@ -88,7 +93,8 @@ export async function POST(req: Request) {
         updated += (res.modifiedCount ?? 0) + (res.upsertedCount ?? 0)
       }
 
-      summary.levels[level] = { assigned, updated, lastSequence: seq, stages: Math.max(1, Math.ceil(seq / WORDS_PER_STAGE)) }
+  summary.levels[level] = { assigned, updated, lastSequence: seq, stages: Math.max(1, Math.ceil(seq / WORDS_PER_STAGE)) }
+  // optional incremental job progress could be added here
       summary.totalAssigned += assigned
       summary.totalUpdated += updated
     }

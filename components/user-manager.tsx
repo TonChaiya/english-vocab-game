@@ -28,7 +28,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Pencil, Trash2, UserCog } from "lucide-react"
+import { Pencil, Trash2, UserCog, Check } from "lucide-react"
 import { useIsMobile } from "@/hooks/use-mobile"
 
 interface User {
@@ -37,6 +37,7 @@ interface User {
   email?: string
   image?: string
   role?: string
+  confirmed?: boolean
 }
 
 interface UserManagerProps {
@@ -172,6 +173,31 @@ export function UserManager({ users: initialUsers }: UserManagerProps) {
     }
   }
 
+  const handleConfirmUser = async (userId: string) => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmed: true }),
+      })
+
+      if (!response.ok) throw new Error('Failed to confirm user')
+
+      setUsers(users.map(u => u._id === userId ? { ...u, /* keep existing role */ } as User : u))
+
+      toast({
+        title: 'ยืนยันผู้ใช้สำเร็จ',
+        description: 'ผู้ใช้ได้รับการยืนยันเรียบร้อยแล้ว',
+      })
+    } catch (error) {
+      console.error('Error confirming user:', error)
+      toast({ title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถยืนยันผู้ใช้ได้', variant: 'destructive' })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -186,6 +212,7 @@ export function UserManager({ users: initialUsers }: UserManagerProps) {
                 <TableHead>ชื่อ</TableHead>
                 <TableHead>อีเมล</TableHead>
                 <TableHead>สถานะ</TableHead>
+                <TableHead>ยืนยัน</TableHead>
                 <TableHead className="text-right">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
@@ -220,6 +247,13 @@ export function UserManager({ users: initialUsers }: UserManagerProps) {
                       <span className={`px-2 py-1 rounded-full text-xs ${user.role === "admin" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
                         {user.role === "admin" ? "แอดมิน" : "ผู้ใช้ทั่วไป"}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      {user.confirmed ? (
+                        <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">ยืนยันแล้ว</span>
+                      ) : (
+                        <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">รอตรวจสอบ</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -278,17 +312,34 @@ export function UserManager({ users: initialUsers }: UserManagerProps) {
                           )}
                         </Dialog>
                         
+                        {/* ปุ่มเปลี่ยนสถานะแอดมิน */}
                         <Button
                           variant="outline"
                           size="icon"
                           onClick={() => handleToggleAdmin(user)}
                           disabled={isLoading}
+                          title={user.role === 'admin' ? 'ยกเลิกสิทธิ์แอดมิน' : 'ให้สิทธิ์แอดมิน'}
                         >
                           <UserCog className="h-4 w-4" />
                           <span className="sr-only">
                             {user.role === "admin" ? "ยกเลิกสิทธิ์แอดมิน" : "ให้สิทธิ์แอดมิน"}
                           </span>
                         </Button>
+
+                        {/* ปุ่มยืนยันผู้ใช้ — แสดงเฉพาะเมื่อยังไม่ยืนยัน */}
+                        {!user.confirmed && (
+                          <Button
+                            variant="ghost"
+                            className="border border-green-200 text-green-700"
+                            size="icon"
+                            onClick={() => handleConfirmUser(user._id)}
+                            disabled={isLoading}
+                            title="ยืนยันผู้ใช้"
+                          >
+                            <Check className="h-4 w-4" />
+                            <span className="sr-only">ยืนยันผู้ใช้</span>
+                          </Button>
+                        )}
                         
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

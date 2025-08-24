@@ -5,6 +5,7 @@ import clientPromise from "@/lib/mongodb"
 import { WordManager } from "@/components/word-manager"
 import ProcessWordsButton from "@/components/process-words-button"
 import WordsSummary from "@/components/words-summary"
+import JobsList from "@/components/jobs-list"
 
 export default async function ManageWordsPage() {
   const session = await getServerSession(authOptions)
@@ -34,9 +35,20 @@ export default async function ManageWordsPage() {
 
           {/* ปุ่มสำหรับประมวลผลลำดับคำและด่าน (admin) */}
           {session?.user?.role === "admin" ? (
-            <div className="p-3 border rounded">
-              <ProcessWordsButton />
-              <WordsSummary />
+            <div className="">
+              {/* Top-level collapse for the whole admin panel */}
+              <details className="p-3 border rounded">
+                <summary className="cursor-pointer font-medium mb-2">Admin tools (click to show/hide)</summary>
+                <div className="mt-2 space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <ProcessWordsButton />
+                    </div>
+                  </div>
+                  <WordsSummary />
+                  <JobsList />
+                </div>
+              </details>
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">ปุ่มการประมวลผลจะแสดงเฉพาะผู้ดูแลระบบ (admin)</div>

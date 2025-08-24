@@ -4,12 +4,43 @@ import { GameInterface } from "@/components/game-interface"
 import { getUserProgress } from "@/lib/user-progress"
 import { getWordForUser, getLevelStats } from "@/lib/words"
 import { redirect } from "next/navigation"
+import clientPromise from '@/lib/mongodb'
 
 export default async function GamePage({ searchParams }: any) {
   const session = await getServerSession(authOptions)
 
   if (!session) {
     redirect("/")
+  }
+
+  // ถ้า session ระบุว่าเป็น pending ให้รีไดเร็กต์ทันทีโดยไม่ต้องรอ DB
+  if (session.user && (session.user.confirmed === false || session.user.role === 'pending')) {
+    redirect('/pending')
+  }
+
+  // ตรวจสอบสถานะผู้ใช้จากฐานข้อมูล (confirmed และ role)
+  try {
+    const client = await clientPromise
+    const db = client.db()
+    const userDoc = await db
+      .collection('users')
+      .findOne({ $or: [{ _id: session.user.id }, { email: session.user.email }] })
+
+    // ถ้าไม่พบผู้ใช้ใน DB หรือผู้ใช้ยังไม่ถูกยืนยัน ให้รีไดเร็กต์ไปยัง /pending
+    if (!userDoc || userDoc.confirmed === false) {
+      console.log('Game page - user not confirmed or not found, redirecting to /pending', session.user.email)
+      redirect('/pending')
+    }
+
+    // อนุญาตเข้าถึงเฉพาะ role 'user' หรือ 'admin'
+    if (!(userDoc.role === 'user' || userDoc.role === 'admin')) {
+      console.log('Game page - user role not allowed:', userDoc.role)
+      redirect('/pending')
+    }
+  } catch (err) {
+    console.error('Game page - error checking user status:', err)
+    // ถ้าเกิดข้อผิดพลาดระหว่างเช็ค DB ให้รีไดเร็กต์ไปหน้าหลักเพื่อความปลอดภัย
+    redirect('/')
   }
 
   // Get level and stage from URL parameters if provided
